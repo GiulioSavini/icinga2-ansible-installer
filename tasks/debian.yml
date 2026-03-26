@@ -1,0 +1,24 @@
+---
+- name: Add Icinga2 GPG key
+  apt_key:
+    url: https://packages.icinga.com/icinga.key
+    state: present
+
+- name: Install icinga2
+  apt:
+    name: icinga2
+    state: present
+    update_cache: yes
+
+- name: Install monitoring-plugins
+  apt:
+    name: monitoring-plugins
+    state: present
+
+- name: Fix pki dir ownership (workaround chiavi)
+  file:
+    path: /etc/icinga2/pki
+    owner: nagios
+    group: nagios
+    state: directory
+  ignore_errors: yes

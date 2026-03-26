@@ -1,0 +1,17 @@
+---
+- name: Import Icinga GPG key
+  rpm_key:
+    key: https://packages.icinga.com/icinga.key
+    state: present
+
+- name: Install Icinga2 RPM release
+  dnf:
+    name: https://packages.icinga.com/epel/icinga-rpm-release-8-latest.noarch.rpm
+    state: present
+
+- name: Install icinga2 and compat-openssl10
+  dnf:
+    name:
+      - icinga2
+      - compat-openssl10
+    state: present

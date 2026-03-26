@@ -1,0 +1,11 @@
+---
+- name: restart icinga2
+  service:
+    name: icinga2
+    state: restarted
+
+- name: enable icinga2
+  service:
+    name: icinga2
+    enabled: yes
+    state: "{{ icinga2_service_state }}"

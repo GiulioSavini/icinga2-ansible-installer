@@ -1,0 +1,23 @@
+---
+- name: Set plugin path for Debian/Ubuntu
+  set_fact:
+    _icinga2_plugin_path: "{{ icinga2_plugin_path_debian }}"
+  when: ansible_os_family == "Debian"
+
+- name: Set plugin path for RedHat
+  set_fact:
+    _icinga2_plugin_path: "{{ icinga2_plugin_path_redhat }}"
+  when: ansible_os_family == "RedHat"
+
+- name: Set plugin path for SLES
+  set_fact:
+    _icinga2_plugin_path: "{{ icinga2_plugin_path_sles }}"
+  when: ansible_os_family == "Suse"
+
+- name: Copy check_mem.pl
+  copy:
+    src: check_mem.pl
+    dest: "{{ _icinga2_plugin_path }}/check_mem.pl"
+    owner: root
+    group: root
+    mode: '0755'

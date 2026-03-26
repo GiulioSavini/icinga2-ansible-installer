@@ -1,0 +1,18 @@
+---
+- name: Import Icinga GPG key
+  rpm_key:
+    key: https://packages.icinga.com/icinga.key
+    state: present
+
+- name: Add Icinga zypper repo
+  community.general.zypper_repository:
+    repo: https://packages.icinga.com/SUSE/ICINGA-release.repo
+    state: present
+    auto_import_keys: yes
+
+- name: Install icinga2 and monitoring-plugins
+  community.general.zypper:
+    name:
+      - icinga2
+      - monitoring-plugins-2.2-bp152.4.3.1
+    state: present

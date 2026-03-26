@@ -1,0 +1,24 @@
+---
+- name: Download Icinga2 packages from NetEye Share
+  shell: |
+    mkdir -p /tmp/rhel9
+    wget -r -np -nH --cut-dirs=4 -R "index.html*" \
+      {{ icinga2_rhel9_base_url }} \
+      -P /tmp/rhel9
+  args:
+    executable: /bin/bash
+    creates: /tmp/rhel9
+
+- name: Install Icinga2 RPMs
+  shell: |
+    cd /tmp/rhel9/9/RPMS/x86_64/
+    yum install -y icinga2-{{ icinga2_rhel9_version }}-1.el9.x86_64.rpm \
+                   icinga2-bin-{{ icinga2_rhel9_version }}-1.el9.x86_64.rpm \
+                   icinga2-common-{{ icinga2_rhel9_version }}-1.el9.x86_64.rpm
+  args:
+    executable: /bin/bash
+
+- name: Install EPEL for Nagios plugins
+  yum:
+    name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+    state: present

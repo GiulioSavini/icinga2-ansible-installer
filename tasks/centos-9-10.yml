@@ -1,0 +1,30 @@
+---
+- name: Download Icinga2 packages from NetEye Share
+  shell: |
+    mkdir -p /tmp/centos10
+    wget -r -np -nH --cut-dirs=4 -R "index.html*" \
+      {{ icinga2_centos10_base_url }} \
+      -P /tmp/centos10
+  args:
+    executable: /bin/bash
+    creates: /tmp/centos10
+
+- name: Install Icinga2 RPMs with dnf
+  shell: |
+    cd /tmp/centos10
+    dnf install -y *.rpm --allowerasing --skip-broken --nobest
+  args:
+    executable: /bin/bash
+
+- name: Build and install Nagios plugins from source
+  shell: |
+    cd /tmp
+    wget https://nagios-plugins.org/download/nagios-plugins-{{ icinga2_nagios_plugins_version }}.tar.gz
+    tar -zxf nagios-plugins-{{ icinga2_nagios_plugins_version }}.tar.gz
+    cd nagios-plugins-{{ icinga2_nagios_plugins_version }}
+    ./configure
+    make
+    make install
+  args:
+    executable: /bin/bash
+    creates: /usr/local/nagios/libexec/check_load

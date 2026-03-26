@@ -1,0 +1,59 @@
+---
+- name: Configure /etc/hosts
+  include_tasks: hosts.yml
+  when: icinga2_manage_hosts_file
+
+- name: Install on Debian/Ubuntu
+  include_tasks: debian.yml
+  when: ansible_os_family == "Debian"
+
+- name: Install on CentOS/Oracle 6-7
+  include_tasks: redhat-6-7.yml
+  when:
+    - ansible_os_family == "RedHat"
+    - ansible_distribution in ["CentOS", "OracleLinux"]
+    - ansible_distribution_major_version in ["6", "7"]
+
+- name: Install on CentOS 8
+  include_tasks: centos-8.yml
+  when:
+    - ansible_distribution == "CentOS"
+    - ansible_distribution_major_version == "8"
+
+- name: Install on CentOS 9/10
+  include_tasks: centos-9-10.yml
+  when:
+    - ansible_distribution == "CentOS"
+    - ansible_distribution_major_version in ["9", "10"]
+
+- name: Install on RHEL 6-7
+  include_tasks: rhel-6-7.yml
+  when:
+    - ansible_distribution == "RedHat"
+    - ansible_distribution_major_version in ["6", "7"]
+
+- name: Install on RHEL 8
+  include_tasks: rhel-8.yml
+  when:
+    - ansible_distribution == "RedHat"
+    - ansible_distribution_major_version == "8"
+
+- name: Install on RHEL 9
+  include_tasks: rhel-9.yml
+  when:
+    - ansible_distribution == "RedHat"
+    - ansible_distribution_major_version == "9"
+
+- name: Install on SLES
+  include_tasks: sles.yml
+  when: ansible_distribution == "SLES"
+
+- name: Deploy check_mem.pl
+  include_tasks: check_mem.yml
+  when: icinga2_deploy_check_mem
+
+- name: Enable and start icinga2 service
+  service:
+    name: icinga2
+    enabled: "{{ icinga2_service_enabled }}"
+    state: "{{ icinga2_service_state }}"

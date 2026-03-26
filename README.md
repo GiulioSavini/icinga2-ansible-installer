@@ -1,6 +1,8 @@
-# Icinga2 Ansible Installer
+# Icinga2 Agent - Ansible Role
 
-Playbook Ansible per installare **Icinga2 agent** su tutte le principali distribuzioni Linux.
+[![Ansible Role](https://img.shields.io/ansible/role/d/GiulioSavini/icinga2-ansible-installer)](https://galaxy.ansible.com/GiulioSavini/icinga2_agent)
+
+Ruolo Ansible per installare **Icinga2 agent** su tutte le principali distribuzioni Linux.
 
 ## Distribuzioni supportate
 
@@ -16,92 +18,149 @@ Playbook Ansible per installare **Icinga2 agent** su tutte le principali distrib
 | RHEL | 9 | RPM da NetEye Share + EPEL |
 | SLES | 15 | zypper (packages.icinga.com) |
 
-## Struttura del progetto
+## Struttura del ruolo
 
 ```
-.
-├── icinga2_install.yml   # Playbook principale
-├── inventory.ini         # Inventario host (da personalizzare)
-├── check_mem.pl          # Plugin custom per check memoria
+icinga2-ansible-installer/
+├── defaults/main.yml          # Variabili default
+├── files/check_mem.pl         # Plugin custom per check memoria
+├── handlers/main.yml          # Handler restart/enable icinga2
+├── meta/main.yml              # Metadata Ansible Galaxy
+├── tasks/
+│   ├── main.yml               # Smista per distro
+│   ├── hosts.yml              # Configurazione /etc/hosts
+│   ├── debian.yml             # Debian / Ubuntu
+│   ├── redhat-6-7.yml         # CentOS / Oracle Linux 6-7
+│   ├── centos-8.yml           # CentOS 8
+│   ├── centos-9-10.yml        # CentOS 9-10
+│   ├── rhel-6-7.yml           # RHEL 6-7
+│   ├── rhel-8.yml             # RHEL 8
+│   ├── rhel-9.yml             # RHEL 9
+│   ├── sles.yml               # SLES 15
+│   └── check_mem.yml          # Deploy plugin check_mem.pl
 └── README.md
 ```
 
 ## Prerequisiti
 
-- **Ansible** >= 2.9 installato sulla macchina di controllo
-- **Accesso SSH** (con chiave o password) verso tutti gli host target
+- **Ansible** >= 2.9
+- **Accesso SSH** verso gli host target
 - **Privilegi sudo/root** sugli host target
-- Per SLES: collection `community.general` installata
+- Per SLES: collection `community.general`
   ```bash
   ansible-galaxy collection install community.general
   ```
 
-## Come si usa
+## Installazione
 
-### 1. Clona la repo
+### Da Ansible Galaxy
+
+```bash
+ansible-galaxy install giuliosavini.icinga2_agent
+```
+
+### Da GitHub
+
+```bash
+ansible-galaxy install git+https://github.com/GiulioSavini/icinga2-ansible-installer.git,main
+```
+
+### Manuale
 
 ```bash
 git clone https://github.com/GiulioSavini/icinga2-ansible-installer.git
-cd icinga2-ansible-installer
+# Copia o linka nella directory dei ruoli:
+#   ~/.ansible/roles/icinga2_agent
+#   oppure ./roles/icinga2_agent
 ```
 
-### 2. Configura l'inventario
+## Come si usa
 
-Modifica `inventory.ini` con i tuoi host:
+### Playbook minimo
 
-```ini
-[linux_servers]
-server1  ansible_host=192.168.1.10  ansible_user=root
-server2  ansible_host=192.168.1.11  ansible_user=admin  ansible_become_pass=password
+```yaml
+---
+- hosts: all
+  become: yes
+  roles:
+    - icinga2_agent
 ```
 
-Puoi raggruppare per distro se preferisci, ma non serve: il playbook rileva automaticamente la distro con i facts di Ansible.
+### Con variabili custom
 
-### 3. Lancia il playbook
+```yaml
+---
+- hosts: all
+  become: yes
+  roles:
+    - role: icinga2_agent
+      vars:
+        icinga2_neteye_hosts:
+          - ip: "10.0.0.1"
+            hostname: "neteye-master"
+          - ip: "10.0.0.2"
+            hostname: "neteye-satellite"
+        icinga2_deploy_check_mem: true
+        icinga2_service_enabled: true
+```
+
+### Lancia il playbook
 
 ```bash
 # Con chiave SSH
-ansible-playbook -i inventory.ini icinga2_install.yml
+ansible-playbook -i inventory.ini site.yml
 
 # Con password SSH
-ansible-playbook -i inventory.ini icinga2_install.yml --ask-pass --ask-become-pass
+ansible-playbook -i inventory.ini site.yml --ask-pass --ask-become-pass
 
-# Solo su un gruppo o host specifico
-ansible-playbook -i inventory.ini icinga2_install.yml --limit server1
+# Solo su un host specifico
+ansible-playbook -i inventory.ini site.yml --limit server1
 
-# Dry-run (controlla senza applicare)
-ansible-playbook -i inventory.ini icinga2_install.yml --check
+# Dry-run
+ansible-playbook -i inventory.ini site.yml --check
 ```
 
-### 4. Verifica l'installazione
+### Verifica l'installazione
 
 ```bash
-# Controlla che icinga2 sia installato
 ansible -i inventory.ini all -m shell -a "icinga2 --version"
-
-# Controlla che il servizio sia attivo
 ansible -i inventory.ini all -m shell -a "systemctl status icinga2 || service icinga2 status"
 ```
 
-## Cosa fa il playbook
+## Variabili
 
-1. **Aggiunge gli host NetEye** in `/etc/hosts` (neteye-sat-udpdp-03 e neteye-sat-udpdp-04)
+Tutte le variabili con i valori default si trovano in [`defaults/main.yml`](defaults/main.yml).
+
+| Variabile | Default | Descrizione |
+|-----------|---------|-------------|
+| `icinga2_neteye_hosts` | vedi defaults | Lista host NetEye per /etc/hosts |
+| `icinga2_manage_hosts_file` | `true` | Gestire /etc/hosts |
+| `icinga2_deploy_check_mem` | `true` | Copiare check_mem.pl |
+| `icinga2_service_enabled` | `true` | Abilitare il servizio |
+| `icinga2_service_state` | `started` | Stato del servizio |
+| `icinga2_plugin_path_debian` | `/usr/lib/nagios/plugins` | Path plugin Debian |
+| `icinga2_plugin_path_redhat` | `/usr/lib64/nagios/plugins` | Path plugin RedHat |
+| `icinga2_plugin_path_sles` | `/usr/lib64/nagios/plugins` | Path plugin SLES |
+| `icinga2_rhel8_version` | `2.14.2` | Versione RPM per RHEL 8 |
+| `icinga2_rhel9_version` | `2.11.9+123.g9b1c44733` | Versione RPM per RHEL 9 |
+| `icinga2_nagios_plugins_version` | `2.4.11` | Versione nagios-plugins (build sorgente) |
+
+## Cosa fa il ruolo
+
+1. **Aggiunge gli host NetEye** in `/etc/hosts`
 2. **Installa Icinga2** con il metodo corretto per ogni distro
 3. **Installa i nagios-plugins** (monitoring-plugins su Debian/SLES)
-4. **Copia `check_mem.pl`** nel path corretto:
-   - Debian/Ubuntu: `/usr/lib/nagios/plugins/`
-   - RedHat/SLES: `/usr/lib64/nagios/plugins/`
-5. **Fix ownership pki** su Debian/Ubuntu (workaround per le chiavi)
+4. **Copia `check_mem.pl`** nel path corretto per la distro
+5. **Fix ownership pki** su Debian/Ubuntu (workaround chiavi)
+6. **Abilita e avvia** il servizio icinga2
 
 ## Note
 
-- Il playbook usa `ignore_errors: yes` su alcuni task dove i pacchetti potrebbero non essere disponibili su tutte le minor version
-- Per CentOS 9/10 i nagios-plugins vengono compilati da sorgente perche' non disponibili via repo
-- Per RHEL 6/7 servono le subscription attive per abilitare i repo opzionali
+- `ignore_errors: yes` su alcuni task dove i pacchetti potrebbero non essere disponibili
+- Per CentOS 9/10 i nagios-plugins vengono compilati da sorgente
+- Per RHEL 6/7 servono le subscription attive
 - Gli RPM per RHEL 8/9 e CentOS 9/10 vengono scaricati dal NetEye Share di Irideos
 
-## Personalizzazione
+## Licenza
 
-- **Host NetEye**: modifica gli IP nel primo task del playbook
-- **Versioni RPM**: aggiorna i nomi file RPM nei task di download se disponibili versioni piu' recenti
-- **Plugin aggiuntivi**: aggiungi altri task `copy` per distribuire plugin custom
+MIT
