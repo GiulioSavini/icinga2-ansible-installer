@@ -74,19 +74,69 @@ git clone https://github.com/GiulioSavini/icinga2-ansible-installer.git
 #   oppure ./roles/icinga2_agent
 ```
 
-## Come si usa
+## Configurazione
 
-### Playbook minimo
+Prima di usare il ruolo devi configurare alcune variabili. Puoi farlo in diversi modi:
+- Direttamente nel **playbook** (sotto `vars`)
+- In un file **group_vars** o **host_vars**
+- In un file separato incluso con `vars_files`
+
+### 1. Host Icinga2 / NetEye (tutte le distro)
+
+Se vuoi che il ruolo aggiunga automaticamente i tuoi server Icinga2 (master/satellite) al file `/etc/hosts` di ogni host target, devi popolare la variabile `icinga2_neteye_hosts` con IP e hostname dei tuoi server di monitoraggio:
 
 ```yaml
----
-- hosts: all
-  become: true
-  roles:
-    - icinga2_agent
+icinga2_neteye_hosts:
+  - ip: "10.0.0.1"
+    hostname: "icinga-master"
+  - ip: "10.0.0.2"
+    hostname: "icinga-satellite"
 ```
 
-### Con variabili custom
+**Dove trovi queste info:** sono gli IP e gli hostname dei tuoi server Icinga2/NetEye master e satellite. Li trovi nella configurazione del tuo Icinga2 Director o nella documentazione della tua infrastruttura di monitoraggio.
+
+Se non ti serve la gestione di `/etc/hosts` (ad esempio usi DNS), puoi disabilitarla:
+```yaml
+icinga2_manage_hosts_file: false
+```
+
+### 2. URL repository interno (solo RHEL 8/9 e CentOS 9/10)
+
+Per queste distro i pacchetti Icinga2 **non sono disponibili** dai repo ufficiali. Servono RPM da un repository interno (es. NetEye Share, Artifactory, web server interno).
+
+Devi impostare le variabili `*_base_url` con l'URL dove sono hostati i tuoi RPM di Icinga2:
+
+| Distro | Variabile da impostare | Cosa deve contenere l'URL |
+|--------|----------------------|---------------------------|
+| RHEL 8 | `icinga2_rhel8_base_url` | Directory con `icinga2-*.el8.x86_64.rpm` |
+| RHEL 9 | `icinga2_rhel9_base_url` | Directory con `icinga2-*.el9.x86_64.rpm` |
+| CentOS 9/10 | `icinga2_centos10_base_url` | Directory con RPM Icinga2 per CentOS |
+
+Esempio:
+```yaml
+icinga2_rhel8_base_url: "https://your-repo.example.com/icinga2/rhel8/RPMS/x86_64/"
+icinga2_rhel9_base_url: "https://your-repo.example.com/icinga2/rhel9/RPMS/x86_64/"
+icinga2_centos10_base_url: "https://your-repo.example.com/icinga2/centos10/"
+```
+
+**Dove trovi queste info:** chiedi al tuo team infrastruttura o controlla la documentazione del tuo NetEye/Icinga2 Director. L'URL e' tipicamente quello di un web server interno che espone i pacchetti RPM.
+
+**Nota:** senza questi URL i task di download per RHEL 8/9 e CentOS 9/10 falliranno. Per le altre distro (Debian, Ubuntu, CentOS 6-8, Oracle Linux, SLES) i pacchetti vengono scaricati automaticamente dai repo ufficiali Icinga2 e non serve configurare nulla.
+
+### 3. Versioni RPM (opzionale)
+
+Se usi versioni diverse di Icinga2, puoi sovrascrivere:
+```yaml
+icinga2_rhel8_version: "2.14.2"                    # default
+icinga2_rhel9_version: "2.11.9+123.g9b1c44733"     # default
+icinga2_nagios_plugins_version: "2.4.11"            # default, per build da sorgente
+```
+
+## Come si usa
+
+### Playbook minimo (Debian/Ubuntu/CentOS 6-8/SLES)
+
+Per le distro che usano i repo ufficiali Icinga2 basta:
 
 ```yaml
 ---
@@ -98,43 +148,56 @@ git clone https://github.com/GiulioSavini/icinga2-ansible-installer.git
         icinga2_neteye_hosts:
           - ip: "10.0.0.1"
             hostname: "icinga-master"
+```
+
+### Playbook completo (tutte le distro)
+
+```yaml
+---
+- hosts: all
+  become: true
+  roles:
+    - role: icinga2_agent
+      vars:
+        # Host Icinga2 da aggiungere a /etc/hosts
+        icinga2_neteye_hosts:
+          - ip: "10.0.0.1"
+            hostname: "icinga-master"
           - ip: "10.0.0.2"
             hostname: "icinga-satellite"
+
+        # URL repo interni (necessari solo per RHEL 8/9 e CentOS 9/10)
+        icinga2_rhel8_base_url: "https://your-repo.example.com/rhel8/RPMS/x86_64/"
+        icinga2_rhel9_base_url: "https://your-repo.example.com/rhel9/RPMS/x86_64/"
+        icinga2_centos10_base_url: "https://your-repo.example.com/centos10/"
+
+        # Opzionali
         icinga2_deploy_check_mem: true
         icinga2_service_enabled: true
 ```
 
-### RHEL 8/9 e CentOS 9/10 (RPM da repo interno)
+### Con group_vars (consigliato per ambienti grandi)
 
-Per queste distro i pacchetti Icinga2 non sono disponibili dai repo ufficiali. Devi specificare l'URL del tuo repository interno (es. NetEye Share) da cui scaricare gli RPM:
-
+Crea `group_vars/all.yml`:
 ```yaml
----
-- hosts: rhel8_servers
-  become: true
-  roles:
-    - role: icinga2_agent
-      vars:
-        icinga2_rhel8_base_url: "https://your-repo.example.com/rhel8/RPMS/x86_64/"
-        icinga2_rhel8_version: "2.14.2"
-
-- hosts: rhel9_servers
-  become: true
-  roles:
-    - role: icinga2_agent
-      vars:
-        icinga2_rhel9_base_url: "https://your-repo.example.com/rhel9/RPMS/x86_64/"
-        icinga2_rhel9_version: "2.11.9+123.g9b1c44733"
-
-- hosts: centos9_10_servers
-  become: true
-  roles:
-    - role: icinga2_agent
-      vars:
-        icinga2_centos10_base_url: "https://your-repo.example.com/centos10/"
+icinga2_neteye_hosts:
+  - ip: "10.0.0.1"
+    hostname: "icinga-master"
 ```
 
-**Nota:** senza questi URL i task di download per RHEL 8/9 e CentOS 9/10 falliranno. Per le altre distro (Debian, Ubuntu, CentOS 6-8, SLES) i pacchetti vengono scaricati dai repo ufficiali Icinga2.
+Crea `group_vars/rhel8.yml`:
+```yaml
+icinga2_rhel8_base_url: "https://your-repo.example.com/rhel8/RPMS/x86_64/"
+```
+
+Il playbook diventa semplicemente:
+```yaml
+---
+- hosts: all
+  become: true
+  roles:
+    - icinga2_agent
+```
 
 ### Lancia il playbook
 
