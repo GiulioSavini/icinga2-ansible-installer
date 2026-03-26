@@ -1,24 +1,25 @@
 ---
 - name: Add Icinga2 GPG key
-  apt_key:
+  ansible.builtin.apt_key:
     url: https://packages.icinga.com/icinga.key
     state: present
 
 - name: Install icinga2
-  apt:
+  ansible.builtin.apt:
     name: icinga2
     state: present
-    update_cache: yes
+    update_cache: true
 
 - name: Install monitoring-plugins
-  apt:
+  ansible.builtin.apt:
     name: monitoring-plugins
     state: present
 
 - name: Fix pki dir ownership (workaround chiavi)
-  file:
+  ansible.builtin.file:
     path: /etc/icinga2/pki
     owner: nagios
     group: nagios
+    mode: "0755"
     state: directory
-  ignore_errors: yes
+  failed_when: false

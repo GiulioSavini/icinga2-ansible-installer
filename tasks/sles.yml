@@ -1,6 +1,6 @@
 ---
 - name: Import Icinga GPG key
-  rpm_key:
+  ansible.builtin.rpm_key:
     key: https://packages.icinga.com/icinga.key
     state: present
 
@@ -8,7 +8,7 @@
   community.general.zypper_repository:
     repo: https://packages.icinga.com/SUSE/ICINGA-release.repo
     state: present
-    auto_import_keys: yes
+    auto_import_keys: true
 
 - name: Install icinga2 and monitoring-plugins
   community.general.zypper:

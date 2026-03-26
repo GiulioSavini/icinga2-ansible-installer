@@ -1,6 +1,7 @@
 ---
 - name: Download Icinga2 packages from NetEye Share
-  shell: |
+  ansible.builtin.shell: |
+    set -o pipefail
     mkdir -p /tmp/centos10
     wget -r -np -nH --cut-dirs=4 -R "index.html*" \
       {{ icinga2_centos10_base_url }} \
@@ -10,14 +11,17 @@
     creates: /tmp/centos10
 
 - name: Install Icinga2 RPMs with dnf
-  shell: |
+  ansible.builtin.shell: |
+    set -o pipefail
     cd /tmp/centos10
     dnf install -y *.rpm --allowerasing --skip-broken --nobest
   args:
     executable: /bin/bash
+  changed_when: true
 
 - name: Build and install Nagios plugins from source
-  shell: |
+  ansible.builtin.shell: |
+    set -o pipefail
     cd /tmp
     wget https://nagios-plugins.org/download/nagios-plugins-{{ icinga2_nagios_plugins_version }}.tar.gz
     tar -zxf nagios-plugins-{{ icinga2_nagios_plugins_version }}.tar.gz

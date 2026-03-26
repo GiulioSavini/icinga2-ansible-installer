@@ -1,18 +1,18 @@
 ---
 - name: Install Icinga2 RPM release (v{{ ansible_distribution_major_version }})
-  yum:
+  ansible.builtin.yum:
     name: "https://packages.icinga.com/epel/icinga-rpm-release-{{ ansible_distribution_major_version }}-latest.noarch.rpm"
     state: present
 
 - name: Install EPEL (v{{ ansible_distribution_major_version }})
-  yum:
+  ansible.builtin.yum:
     name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
     state: present
 
 - name: Install icinga2 and nagios-plugins
-  yum:
+  ansible.builtin.yum:
     name:
       - icinga2
       - nagios-plugins-all
     state: present
-  ignore_errors: yes
+  failed_when: false

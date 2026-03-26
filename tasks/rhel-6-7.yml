@@ -1,31 +1,33 @@
 ---
 - name: Install EPEL
-  yum:
+  ansible.builtin.yum:
     name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
     state: present
 
 - name: Enable subscription-manager optional repos
-  shell: |
+  ansible.builtin.shell: |
+    set -o pipefail
     subscription-manager repos --enable rhel-{{ ansible_distribution_major_version }}-server-optional-rpms
     subscription-manager repos --enable rhel-server-rhscl-{{ ansible_distribution_major_version }}-rpms
   args:
     executable: /bin/bash
-  ignore_errors: yes
+  changed_when: false
+  failed_when: false
 
 - name: Import Icinga GPG key
-  rpm_key:
+  ansible.builtin.rpm_key:
     key: https://packages.icinga.com/icinga.key
     state: present
 
 - name: Install Icinga2 RPM release
-  yum:
+  ansible.builtin.yum:
     name: "https://packages.icinga.com/epel/icinga-rpm-release-{{ ansible_distribution_major_version }}-latest.noarch.rpm"
     state: present
 
 - name: Install icinga2 and nagios-plugins
-  yum:
+  ansible.builtin.yum:
     name:
       - icinga2
       - nagios-plugins-all
     state: present
-  ignore_errors: yes
+  failed_when: false

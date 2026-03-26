@@ -1,11 +1,11 @@
 ---
-- name: restart icinga2
-  service:
+- name: Restart icinga2
+  ansible.builtin.service:
     name: icinga2
     state: restarted
 
-- name: enable icinga2
-  service:
+- name: Enable icinga2
+  ansible.builtin.service:
     name: icinga2
-    enabled: yes
+    enabled: true
     state: "{{ icinga2_service_state }}"
