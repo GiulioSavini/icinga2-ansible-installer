@@ -1,0 +1,331 @@
+---
+- name: Install Icinga2 agent on all Linux distributions
+  hosts: all
+  become: yes
+
+  tasks:
+
+    # ─────────────────────────────────────────────
+    # /etc/hosts
+    # ─────────────────────────────────────────────
+    - name: Add Neteye hosts to /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ item }}"
+        state: present
+      loop:
+        - "82.193.36.217  neteye-sat-udpdp-03"
+        - "82.193.36.218  neteye-sat-udpdp-04"
+
+    # ─────────────────────────────────────────────
+    # DEBIAN / UBUNTU
+    # ─────────────────────────────────────────────
+    - name: "[Debian/Ubuntu] Add Icinga2 GPG key"
+      apt_key:
+        url: https://packages.icinga.com/icinga.key
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: "[Debian/Ubuntu] Install icinga2"
+      apt:
+        name: icinga2
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: "[Debian/Ubuntu] Install monitoring-plugins"
+      apt:
+        name: monitoring-plugins
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: "[Debian/Ubuntu] Fix pki dir ownership (workaround chiavi)"
+      file:
+        path: /etc/icinga2/pki
+        owner: nagios
+        group: nagios
+        state: directory
+      when: ansible_os_family == "Debian"
+      ignore_errors: yes
+
+    # ─────────────────────────────────────────────
+    # CENTOS 6 / CENTOS 7 / ORACLE 6 / ORACLE 7
+    # ─────────────────────────────────────────────
+    - name: "[CentOS/Oracle 6] Install Icinga2 RPM release"
+      yum:
+        name: https://packages.icinga.com/epel/icinga-rpm-release-6-latest.noarch.rpm
+        state: present
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version == "6"
+
+    - name: "[CentOS/Oracle 6] Install EPEL"
+      yum:
+        name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
+        state: present
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version == "6"
+
+    - name: "[CentOS/Oracle 7] Install Icinga2 RPM release"
+      yum:
+        name: https://packages.icinga.com/epel/icinga-rpm-release-7-latest.noarch.rpm
+        state: present
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version == "7"
+
+    - name: "[CentOS/Oracle 7] Install EPEL"
+      yum:
+        name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+        state: present
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version == "7"
+
+    - name: "[CentOS 6/7 + Oracle 6/7] Install icinga2 and nagios-plugins"
+      yum:
+        name:
+          - icinga2
+          - nagios-plugins-all
+        state: present
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version in ["6", "7"]
+      ignore_errors: yes
+
+    # ─────────────────────────────────────────────
+    # CENTOS 8
+    # ─────────────────────────────────────────────
+    - name: "[CentOS 8] Import Icinga GPG key"
+      rpm_key:
+        key: https://packages.icinga.com/icinga.key
+        state: present
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version == "8"
+        - ansible_distribution == "CentOS"
+
+    - name: "[CentOS 8] Install Icinga2 RPM release"
+      dnf:
+        name: https://packages.icinga.com/epel/icinga-rpm-release-8-latest.noarch.rpm
+        state: present
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version == "8"
+        - ansible_distribution == "CentOS"
+
+    - name: "[CentOS 8] Install icinga2 and compat-openssl10"
+      dnf:
+        name:
+          - icinga2
+          - compat-openssl10
+        state: present
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version == "8"
+        - ansible_distribution == "CentOS"
+
+    # ─────────────────────────────────────────────
+    # RHEL 6
+    # ─────────────────────────────────────────────
+    - name: "[RHEL 6] Enable subscription repos and install Icinga"
+      shell: |
+        yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
+        subscription-manager repos --enable rhel-6-server-optional-rpms
+        subscription-manager repos --enable rhel-server-rhscl-6-rpms
+        rpm --import https://packages.icinga.com/icinga.key
+        yum install -y https://packages.icinga.com/epel/icinga-rpm-release-6-latest.noarch.rpm
+        yum install -y icinga2 nagios-plugins-all
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution == "RedHat"
+        - ansible_distribution_major_version == "6"
+      args:
+        executable: /bin/bash
+
+    # ─────────────────────────────────────────────
+    # RHEL 7
+    # ─────────────────────────────────────────────
+    - name: "[RHEL 7] Enable subscription repos and install Icinga"
+      shell: |
+        yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+        subscription-manager repos --enable rhel-7-server-optional-rpms
+        subscription-manager repos --enable rhel-server-rhscl-7-rpms
+        rpm --import https://packages.icinga.com/icinga.key
+        yum install -y https://packages.icinga.com/epel/icinga-rpm-release-7-latest.noarch.rpm
+        yum install -y icinga2 nagios-plugins-all
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution == "RedHat"
+        - ansible_distribution_major_version == "7"
+      args:
+        executable: /bin/bash
+
+    # ─────────────────────────────────────────────
+    # RHEL 8 - pacchetti dal NetEye Share
+    # ─────────────────────────────────────────────
+    - name: "[RHEL 8] Download Icinga2 packages from NetEye Share"
+      shell: |
+        mkdir -p /tmp/rhel8
+        wget -r -np -nH --cut-dirs=4 -R "index.html*" \
+          https://monitor.irideos.it/neteyeshare/monitoring/agents/linux/rhel8/8/RPMS/x86_64/install_2.14.2/ \
+          -P /tmp/rhel8
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution == "RedHat"
+        - ansible_distribution_major_version == "8"
+      args:
+        executable: /bin/bash
+
+    - name: "[RHEL 8] Install Icinga2 RPMs"
+      shell: |
+        cd /tmp/rhel8/8/RPMS/x86_64/install_2.14.2/
+        yum install -y icinga2-2.14.2-1.el8.x86_64.rpm \
+                       icinga2-bin-2.14.2-1.el8.x86_64.rpm \
+                       icinga2-common-2.14.2-1.el8.x86_64.rpm
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution == "RedHat"
+        - ansible_distribution_major_version == "8"
+      args:
+        executable: /bin/bash
+
+    - name: "[RHEL 8] Install EPEL for Nagios plugins"
+      yum:
+        name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        state: present
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution == "RedHat"
+        - ansible_distribution_major_version == "8"
+
+    - name: "[RHEL 8] Install nagios-plugins-all"
+      yum:
+        name: nagios-plugins-all
+        state: present
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution == "RedHat"
+        - ansible_distribution_major_version == "8"
+      ignore_errors: yes
+
+    # ─────────────────────────────────────────────
+    # RHEL 9 / CentOS 9-10 - pacchetti dal NetEye Share
+    # ─────────────────────────────────────────────
+    - name: "[RHEL 9] Download Icinga2 packages from NetEye Share"
+      shell: |
+        mkdir -p /tmp/rhel9
+        wget -r -np -nH --cut-dirs=4 -R "index.html*" \
+          https://monitor.irideos.it/neteyeshare/monitoring/agents/linux/rhel9/9/RPMS/x86_64/ \
+          -P /tmp/rhel9
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution == "RedHat"
+        - ansible_distribution_major_version == "9"
+      args:
+        executable: /bin/bash
+
+    - name: "[RHEL 9] Install Icinga2 RPMs"
+      shell: |
+        cd /tmp/rhel9/9/RPMS/x86_64/
+        yum install -y icinga2-2.11.9+123.g9b1c44733-1.el9.x86_64.rpm \
+                       icinga2-bin-2.11.9+123.g9b1c44733-1.el9.x86_64.rpm \
+                       icinga2-common-2.11.9+123.g9b1c44733-1.el9.x86_64.rpm
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution == "RedHat"
+        - ansible_distribution_major_version == "9"
+      args:
+        executable: /bin/bash
+
+    - name: "[RHEL 9] Install EPEL for Nagios plugins"
+      yum:
+        name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+        state: present
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution == "RedHat"
+        - ansible_distribution_major_version == "9"
+
+    - name: "[CentOS 9/10] Download Icinga2 packages from NetEye Share"
+      shell: |
+        mkdir -p /tmp/centos10
+        wget -r -np -nH --cut-dirs=4 -R "index.html*" \
+          https://monitor.irideos.it/neteyeshare/monitoring/agents/linux/centos10/ \
+          -P /tmp/centos10
+      when:
+        - ansible_distribution == "CentOS"
+        - ansible_distribution_major_version in ["9", "10"]
+      args:
+        executable: /bin/bash
+
+    - name: "[CentOS 9/10] Install Icinga2 RPMs with dnf"
+      shell: |
+        cd /tmp/centos10
+        dnf install -y *.rpm --allowerasing --skip-broken --nobest
+      when:
+        - ansible_distribution == "CentOS"
+        - ansible_distribution_major_version in ["9", "10"]
+      args:
+        executable: /bin/bash
+
+    - name: "[CentOS 9/10] Build and install Nagios plugins from source"
+      shell: |
+        cd /tmp
+        wget https://nagios-plugins.org/download/nagios-plugins-2.4.11.tar.gz
+        tar -zxf nagios-plugins-2.4.11.tar.gz
+        cd nagios-plugins-2.4.11
+        ./configure
+        make
+        make install
+      when:
+        - ansible_distribution == "CentOS"
+        - ansible_distribution_major_version in ["9", "10"]
+      args:
+        executable: /bin/bash
+
+    # ─────────────────────────────────────────────
+    # SLES 15
+    # ─────────────────────────────────────────────
+    - name: "[SLES 15] Import Icinga GPG key"
+      rpm_key:
+        key: https://packages.icinga.com/icinga.key
+        state: present
+      when: ansible_distribution == "SLES"
+
+    - name: "[SLES 15] Add Icinga zypper repo"
+      community.general.zypper_repository:
+        repo: https://packages.icinga.com/SUSE/ICINGA-release.repo
+        state: present
+        auto_import_keys: yes
+      when: ansible_distribution == "SLES"
+
+    - name: "[SLES 15] Install icinga2 and monitoring-plugins"
+      community.general.zypper:
+        name:
+          - icinga2
+          - monitoring-plugins-2.2-bp152.4.3.1
+        state: present
+      when: ansible_distribution == "SLES"
+
+    # ─────────────────────────────────────────────
+    # check_mem.pl - tutte le distro
+    # ─────────────────────────────────────────────
+    - name: "Copy check_mem.pl - Debian/Ubuntu path"
+      copy:
+        src: check_mem.pl
+        dest: /usr/lib/nagios/plugins/check_mem.pl
+        owner: root
+        group: root
+        mode: '0755'
+      when: ansible_os_family == "Debian"
+
+    - name: "Copy check_mem.pl - RedHat/SLES path"
+      copy:
+        src: check_mem.pl
+        dest: /usr/lib64/nagios/plugins/check_mem.pl
+        owner: root
+        group: root
+        mode: '0755'
+      when: ansible_os_family in ["RedHat", "Suse"]

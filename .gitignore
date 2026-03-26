@@ -1,0 +1,17 @@
+# Ansible
+*.retry
+
+# Editor
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets - non committare mai password o chiavi
+*.vault
+vault_pass.txt
