@@ -11,11 +11,11 @@ Ruolo Ansible per installare **Icinga2 agent** su tutte le principali distribuzi
 | Debian / Ubuntu | Tutte | apt (packages.icinga.com) |
 | CentOS | 6, 7 | yum + EPEL |
 | CentOS | 8 | dnf + compat-openssl10 |
-| CentOS | 9, 10 | RPM da NetEye Share + nagios-plugins da sorgente |
+| CentOS | 9, 10 | RPM da repo interno + nagios-plugins da sorgente |
 | Oracle Linux | 6, 7 | yum + EPEL (come CentOS) |
 | RHEL | 6, 7 | subscription-manager + yum |
-| RHEL | 8 | RPM da NetEye Share + EPEL |
-| RHEL | 9 | RPM da NetEye Share + EPEL |
+| RHEL | 8 | RPM da repo interno + EPEL |
+| RHEL | 9 | RPM da repo interno + EPEL |
 | SLES | 15 | zypper (packages.icinga.com) |
 
 ## Struttura del ruolo
@@ -81,7 +81,7 @@ git clone https://github.com/GiulioSavini/icinga2-ansible-installer.git
 ```yaml
 ---
 - hosts: all
-  become: yes
+  become: true
   roles:
     - icinga2_agent
 ```
@@ -91,18 +91,50 @@ git clone https://github.com/GiulioSavini/icinga2-ansible-installer.git
 ```yaml
 ---
 - hosts: all
-  become: yes
+  become: true
   roles:
     - role: icinga2_agent
       vars:
         icinga2_neteye_hosts:
           - ip: "10.0.0.1"
-            hostname: "neteye-master"
+            hostname: "icinga-master"
           - ip: "10.0.0.2"
-            hostname: "neteye-satellite"
+            hostname: "icinga-satellite"
         icinga2_deploy_check_mem: true
         icinga2_service_enabled: true
 ```
+
+### RHEL 8/9 e CentOS 9/10 (RPM da repo interno)
+
+Per queste distro i pacchetti Icinga2 non sono disponibili dai repo ufficiali. Devi specificare l'URL del tuo repository interno (es. NetEye Share) da cui scaricare gli RPM:
+
+```yaml
+---
+- hosts: rhel8_servers
+  become: true
+  roles:
+    - role: icinga2_agent
+      vars:
+        icinga2_rhel8_base_url: "https://your-repo.example.com/rhel8/RPMS/x86_64/"
+        icinga2_rhel8_version: "2.14.2"
+
+- hosts: rhel9_servers
+  become: true
+  roles:
+    - role: icinga2_agent
+      vars:
+        icinga2_rhel9_base_url: "https://your-repo.example.com/rhel9/RPMS/x86_64/"
+        icinga2_rhel9_version: "2.11.9+123.g9b1c44733"
+
+- hosts: centos9_10_servers
+  become: true
+  roles:
+    - role: icinga2_agent
+      vars:
+        icinga2_centos10_base_url: "https://your-repo.example.com/centos10/"
+```
+
+**Nota:** senza questi URL i task di download per RHEL 8/9 e CentOS 9/10 falliranno. Per le altre distro (Debian, Ubuntu, CentOS 6-8, SLES) i pacchetti vengono scaricati dai repo ufficiali Icinga2.
 
 ### Lancia il playbook
 
@@ -133,7 +165,7 @@ Tutte le variabili con i valori default si trovano in [`defaults/main.yml`](defa
 
 | Variabile | Default | Descrizione |
 |-----------|---------|-------------|
-| `icinga2_neteye_hosts` | vedi defaults | Lista host NetEye per /etc/hosts |
+| `icinga2_neteye_hosts` | `[]` | Lista host Icinga2/NetEye per /etc/hosts (vedi esempio sotto) |
 | `icinga2_manage_hosts_file` | `true` | Gestire /etc/hosts |
 | `icinga2_deploy_check_mem` | `true` | Copiare check_mem.pl |
 | `icinga2_service_enabled` | `true` | Abilitare il servizio |
@@ -142,12 +174,25 @@ Tutte le variabili con i valori default si trovano in [`defaults/main.yml`](defa
 | `icinga2_plugin_path_redhat` | `/usr/lib64/nagios/plugins` | Path plugin RedHat |
 | `icinga2_plugin_path_sles` | `/usr/lib64/nagios/plugins` | Path plugin SLES |
 | `icinga2_rhel8_version` | `2.14.2` | Versione RPM per RHEL 8 |
+| `icinga2_rhel8_base_url` | `""` | URL repo interno RPM RHEL 8 (**obbligatorio per RHEL 8**) |
 | `icinga2_rhel9_version` | `2.11.9+123.g9b1c44733` | Versione RPM per RHEL 9 |
+| `icinga2_rhel9_base_url` | `""` | URL repo interno RPM RHEL 9 (**obbligatorio per RHEL 9**) |
+| `icinga2_centos10_base_url` | `""` | URL repo interno RPM CentOS 9/10 (**obbligatorio per CentOS 9/10**) |
 | `icinga2_nagios_plugins_version` | `2.4.11` | Versione nagios-plugins (build sorgente) |
+
+### Formato `icinga2_neteye_hosts`
+
+```yaml
+icinga2_neteye_hosts:
+  - ip: "10.0.0.1"
+    hostname: "icinga-master"
+  - ip: "10.0.0.2"
+    hostname: "icinga-satellite"
+```
 
 ## Cosa fa il ruolo
 
-1. **Aggiunge gli host NetEye** in `/etc/hosts`
+1. **Aggiunge gli host Icinga2/NetEye** in `/etc/hosts` (se configurati)
 2. **Installa Icinga2** con il metodo corretto per ogni distro
 3. **Installa i nagios-plugins** (monitoring-plugins su Debian/SLES)
 4. **Copia `check_mem.pl`** nel path corretto per la distro
@@ -156,10 +201,9 @@ Tutte le variabili con i valori default si trovano in [`defaults/main.yml`](defa
 
 ## Note
 
-- `ignore_errors: yes` su alcuni task dove i pacchetti potrebbero non essere disponibili
-- Per CentOS 9/10 i nagios-plugins vengono compilati da sorgente
-- Per RHEL 6/7 servono le subscription attive
-- Gli RPM per RHEL 8/9 e CentOS 9/10 vengono scaricati dal NetEye Share di Irideos
+- Per CentOS 9/10 i nagios-plugins vengono compilati da sorgente perche' non disponibili via repo
+- Per RHEL 6/7 servono le subscription attive per abilitare i repo opzionali
+- Per RHEL 8/9 e CentOS 9/10 serve un repository interno con gli RPM di Icinga2
 
 ## Licenza
 

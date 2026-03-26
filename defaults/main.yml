@@ -1,10 +1,12 @@
 ---
-# NetEye satellite hosts da aggiungere a /etc/hosts
-icinga2_neteye_hosts:
-  - ip: "82.193.36.217"
-    hostname: "neteye-sat-udpdp-03"
-  - ip: "82.193.36.218"
-    hostname: "neteye-sat-udpdp-04"
+# Host da aggiungere a /etc/hosts (inserisci i tuoi satellite/master Icinga2)
+# Esempio:
+#   icinga2_neteye_hosts:
+#     - ip: "10.0.0.1"
+#       hostname: "icinga-master"
+#     - ip: "10.0.0.2"
+#       hostname: "icinga-satellite"
+icinga2_neteye_hosts: []
 
 # Abilitare la configurazione di /etc/hosts
 icinga2_manage_hosts_file: true
@@ -21,16 +23,16 @@ icinga2_plugin_path_debian: /usr/lib/nagios/plugins
 icinga2_plugin_path_redhat: /usr/lib64/nagios/plugins
 icinga2_plugin_path_sles: /usr/lib64/nagios/plugins
 
-# Versioni RPM per RHEL 8 (NetEye Share)
+# Versioni RPM per RHEL 8 (da repository interno/NetEye Share)
 icinga2_rhel8_version: "2.14.2"
-icinga2_rhel8_base_url: "https://monitor.irideos.it/neteyeshare/monitoring/agents/linux/rhel8/8/RPMS/x86_64/install_2.14.2/"
+icinga2_rhel8_base_url: ""
 
-# Versioni RPM per RHEL 9 (NetEye Share)
+# Versioni RPM per RHEL 9 (da repository interno/NetEye Share)
 icinga2_rhel9_version: "2.11.9+123.g9b1c44733"
-icinga2_rhel9_base_url: "https://monitor.irideos.it/neteyeshare/monitoring/agents/linux/rhel9/9/RPMS/x86_64/"
+icinga2_rhel9_base_url: ""
 
-# URL pacchetti CentOS 9/10 (NetEye Share)
-icinga2_centos10_base_url: "https://monitor.irideos.it/neteyeshare/monitoring/agents/linux/centos10/"
+# URL pacchetti CentOS 9/10 (da repository interno/NetEye Share)
+icinga2_centos10_base_url: ""
 
 # Versione nagios-plugins per build da sorgente (CentOS 9/10)
 icinga2_nagios_plugins_version: "2.4.11"
